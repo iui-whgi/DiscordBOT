@@ -43,7 +43,7 @@ def fetch_notices_ee():
                 number = int(cells[0].text.strip())  # 공지 번호를 정수로 변환
                 category_span = notice.select_one('td.left a span')
                 category = category_span.text.strip() if category_span else '카테고리 없음'
-                title = category_span.find_next_sibling(text=True).strip() if category_span else '제목 없음'
+                title = category_span.find_next_sibling(string=True).strip() if category_span else '제목 없음'
                 date = cells[3].text.strip()  # 날짜
                 link = notice.select_one('td.left a')['href'] if notice.select_one('td.left a') else '링크 없음'  # 공지사항 링크
                 full_link = base_url + link if link != '링크 없음' else '링크 없음'  # 전체 링크 생성
@@ -51,7 +51,7 @@ def fetch_notices_ee():
 
     return data
 
-@tasks.loop(seconds=5)  # 5초마다 웹사이트를 체크합니다.
+@tasks.loop(seconds=10)  # 5초마다 웹사이트를 체크합니다.
 async def check_notices_ee():
     # 공지사항 데이터 가져오기
     data = fetch_notices_ee()
@@ -92,8 +92,15 @@ async def check_notices_ee():
         combined_df.to_csv('EE.csv', index=False, encoding='utf-8-sig')
 
         print("공지사항 데이터가 업데이트되었습니다.")
+            # 가장 오래된 (제일 아래) 행 삭제
+        combined_df = combined_df.iloc[:-1]
+
+        # 변경된 데이터 저장
+        combined_df.to_csv('EE.csv', index=False, encoding='utf-8-sig')
+
+        print("가장 오래된 공지사항이 삭제되었습니다.", flush=True)
     else:
-        print("새로운 공지사항이 없습니다.")
+        print("새로운 공지사항이 없습니다.", flush=True)
 
 @client.event
 async def on_ready():

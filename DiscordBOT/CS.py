@@ -52,7 +52,7 @@ def fetch_cs_notices():
     return data
 
 
-@tasks.loop(seconds=5)  # 5초마다 웹사이트를 체크합니다.
+@tasks.loop(seconds=10)  # 5초마다 웹사이트를 체크합니다.
 async def check_notices_cs():
     # 공지사항 데이터 가져오기
     data = fetch_cs_notices()
@@ -92,9 +92,15 @@ async def check_notices_cs():
         combined_df = pd.concat([new_notices_sorted, old_df]).drop_duplicates(subset=['번호']).sort_values(by='번호', ascending=False)
         combined_df.to_csv('CS.csv', index=False, encoding='utf-8-sig')
 
-        print("공지사항 데이터가 업데이트되었습니다.")
+        print("공지사항 데이터가 업데이트되었습니다.", flush=True)
+
+        combined_df = combined_df.iloc[:-1]
+        # 변경된 데이터 저장
+        combined_df.to_csv('CS.csv', index=False, encoding='utf-8-sig')
+
+        print("가장 오래된 공지사항이 삭제되었습니다.", flush=True)
     else:
-        print("새로운 공지사항이 없습니다.")
+        print("새로운 공지사항이 없습니다.", flush=True)
 
 @client.event
 async def on_ready():
