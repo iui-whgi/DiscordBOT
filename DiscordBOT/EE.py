@@ -13,43 +13,58 @@ intents.members = True
 
 client = commands.Bot(command_prefix='!', intents=intents)
 
+
 def fetch_notices_ee():
-    # 웹페이지 URL
     base_url = 'https://see.knu.ac.kr'
     url = base_url + '/content/board/notice.html'
 
-    # 웹페이지 요청
     response = requests.get(url)
-    response.encoding = 'utf-8'  # 인코딩을 'utf-8'로 설정
-    response.raise_for_status()  # 요청이 성공했는지 확인
+    response.encoding = 'utf-8'
+    response.raise_for_status()
 
-    # BeautifulSoup으로 HTML 파싱
     soup = BeautifulSoup(response.text, 'html.parser')
-
-    # 주어진 CSS 선택자를 사용하여 공지사항 목록 추출
     selector = '#content > div > div > div.board_list > div.board_body > table > tbody'
     board_body = soup.select_one(selector)
 
-    # 공지사항 데이터를 저장할 리스트 초기화
     data = []
 
     if board_body:
-        notices = board_body.find_all('tr')  # 각 공지사항은 table row로 표시되어 있습니다.
+        notices = board_body.find_all('tr')
 
-        # 공지사항 데이터 추출
         for notice in notices:
             cells = notice.find_all('td')
-            if cells and cells[0].text.strip():  # 번호 칼럼이 존재하는지 확인
-                number = int(cells[0].text.strip())  # 공지 번호를 정수로 변환
+            if cells and cells[0].text.strip():
+                number = int(cells[0].text.strip())
                 category_span = notice.select_one('td.left a span')
                 category = category_span.text.strip() if category_span else '카테고리 없음'
                 title = category_span.find_next_sibling(string=True).strip() if category_span else '제목 없음'
-                date = cells[3].text.strip()  # 날짜
-                link = notice.select_one('td.left a')['href'] if notice.select_one('td.left a') else '링크 없음'  # 공지사항 링크
-                full_link = base_url + link if link != '링크 없음' else '링크 없음'  # 전체 링크 생성
-                data.append([number, category, title, date, full_link])
+                date = cells[3].text.strip()
+
+                # ✅ 링크 처리 수정
+                link_tag = notice.find('td', class_='left').find('a')
+                link = link_tag.get('href') if link_tag and link_tag.has_attr('href') else None
+
+                if link:
+                    # 혹시라도 link에 "?"나 이상한 문자가 포함되었을 경우 제거
+                    link = link.strip()
+                    if link.startswith('/'):
+                        full_link = f"{base_url}{link}"
+                    else:
+                        full_link = url +link
+                else:
+                    full_link = '링크 없음'
+
+                print(f"DEBUG: {title} -> {full_link}")  # 디버깅용 출력
+
+                # ✅ Markdown 링크 수정
+                formatted_link = f"[{title}](<{full_link}>)"
+
+                data.append([number, category, formatted_link, date, full_link])
 
     return data
+
+
+
 
 @tasks.loop(seconds=10)  # 5초마다 웹사이트를 체크합니다.
 async def check_notices_ee():
@@ -83,9 +98,14 @@ async def check_notices_ee():
             return
 
         for index, row in new_notices_sorted.iterrows():
-            embed = discord.Embed(description=f"[💡{row['제목']}]({row['URL']})", color=discord.Color.blue())
-            embed.add_field(name="📆 Date", value=row["날짜"], inline=True)
+            embed = discord.Embed(
+                description=f"💡 {row['제목']}",  # 제목 앞에 💡 추가
+                color=discord.Color.blue()
+            )
+            embed.add_field(name="📅 Date", value=row["날짜"], inline=True)
             await channel.send(embed=embed)
+
+
 
         # 업데이트된 DataFrame 병합 및 저장 (새로운 공지가 최상단에 위치하도록)
         combined_df = pd.concat([new_notices_sorted, old_df]).drop_duplicates(subset=['번호']).sort_values(by='번호', ascending=False)
