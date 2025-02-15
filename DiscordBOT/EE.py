@@ -73,7 +73,7 @@ async def check_notices_ee():
 
     # 새로운 공지가 있으면 디스코드 채널에 알림
     if not new_notices.empty:
-        new_notices_sorted = new_notices.sort_values(by='번호', ascending=False)
+        new_notices_sorted = new_notices.sort_values(by='번호', ascending=True)
         print("새로운 공지사항이 발견되었습니다:")
         print(new_notices_sorted)
 
@@ -92,8 +92,8 @@ async def check_notices_ee():
         combined_df.to_csv('EE.csv', index=False, encoding='utf-8-sig')
 
         print("공지사항 데이터가 업데이트되었습니다.")
-            # 가장 오래된 (제일 아래) 행 삭제
-        combined_df = combined_df.iloc[:-1]
+        # 가장 오래된 (제일 아래) 행 삭제
+        # combined_df = combined_df.iloc[:-1]
 
         # 변경된 데이터 저장
         combined_df.to_csv('EE.csv', index=False, encoding='utf-8-sig')
