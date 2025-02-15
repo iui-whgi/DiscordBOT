@@ -74,7 +74,7 @@ async def check_notices_cs():
 
     # 새로운 공지가 있으면 디스코드 채널에 알림
     if not new_notices.empty:
-        new_notices_sorted = new_notices.sort_values(by='번호', ascending=False)
+        new_notices_sorted = new_notices.sort_values(by='번호', ascending=True)
         print("새로운 공지사항이 발견되었습니다:")
         print(new_notices_sorted)
 
