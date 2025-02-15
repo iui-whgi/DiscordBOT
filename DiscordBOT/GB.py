@@ -45,28 +45,25 @@ def fetch_notices_ee():
     return data
 
 
-
-@tasks.loop(seconds=10)  
+@tasks.loop(seconds=10)
 async def check_notices_ee():
     data = fetch_notices_ee()
     new_df = pd.DataFrame(data, columns=["번호", "제목", "게시 날짜", "URL"])
 
     # 기존 EE.csv 파일이 있는지 확인하고 읽어오기
-
     if os.path.exists('GB.csv'):
         old_df = pd.read_csv('GB.csv', encoding='utf-8-sig')
-        # DB에서 제일 상단(가장 최신)의 번호 확인
-        max_old_number = old_df['번호'].max()
+        max_old_number = old_df['번호'].min()
     else:
         old_df = pd.DataFrame(columns=["번호", "제목", "게시 날짜", "URL"])
         max_old_number = 0
 
-    # 새로운 공지사항 확인 (제일 상단 번호보다 높은 번호의 공지사항만)
-    new_notices = new_df[new_df['번호'] > max_old_number]
+    # 기존 데이터와 비교하여 새로운 공지 필터링 (번호 또는 제목이 다른 경우)
+    new_notices = new_df[~new_df["제목"].isin(old_df["제목"])]
 
     # 새로운 공지가 있으면 디스코드 채널에 알림
     if not new_notices.empty:
-        new_notices_sorted = new_notices.sort_values(by='번호', ascending=False)
+        new_notices_sorted = new_notices.sort_values(by='번호', ascending=False)  # 최신순 정렬
         print("새로운 공지사항이 발견되었습니다:")
         print(new_notices_sorted)
 
@@ -80,13 +77,15 @@ async def check_notices_ee():
             embed.add_field(name="📆 Date", value=row["게시 날짜"], inline=True)
             await channel.send(embed=embed)
 
-        # 업데이트된 DataFrame 병합 및 저장 (새로운 공지가 최상단에 위치하도록)
-        combined_df = pd.concat([new_notices_sorted, old_df]).drop_duplicates(subset=['번호']).sort_values(by='번호', ascending=False)
+        # 업데이트된 DataFrame 병합 및 저장 (최신이 최상단)
+        combined_df = pd.concat([new_notices_sorted, old_df], ignore_index=True).drop_duplicates(subset=['번호'])
+        combined_df = combined_df.sort_values(by='번호', ascending=True)  # 최신 공지가 위로 가도록 정렬
         combined_df.to_csv('GB.csv', index=False, encoding='utf-8-sig')
+
 
         print("공지사항 데이터가 업데이트되었습니다.")
             # 가장 오래된 (제일 아래) 행 삭제
-        combined_df = combined_df.iloc[:-1]
+
 
         # 변경된 데이터 저장
         combined_df.to_csv('GB.csv', index=False, encoding='utf-8-sig')
