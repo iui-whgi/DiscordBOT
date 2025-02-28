@@ -50,15 +50,13 @@ async def check_notices_ee():
     data = fetch_notices_ee()
     new_df = pd.DataFrame(data, columns=["번호", "제목", "게시 날짜", "URL"])
 
-    # 기존 EE.csv 파일이 있는지 확인하고 읽어오기
+    # 기존 CSV 파일 확인
     if os.path.exists('GB.csv'):
         old_df = pd.read_csv('GB.csv', encoding='utf-8-sig')
-        max_old_number = old_df['번호'].min()
     else:
         old_df = pd.DataFrame(columns=["번호", "제목", "게시 날짜", "URL"])
-        max_old_number = 0
 
-    # 기존 데이터와 비교하여 새로운 공지 필터링 (번호 또는 제목이 다른 경우)
+    # 기존 데이터와 비교하여 새로운 제목만 필터링
     new_notices = new_df[~new_df["제목"].isin(old_df["제목"])]
 
     # 새로운 공지가 있으면 디스코드 채널에 알림
@@ -72,27 +70,20 @@ async def check_notices_ee():
             print("채널을 찾을 수 없습니다. 채널 ID를 확인하세요.")
             return
 
-        for index, row in new_notices_sorted.iterrows():
+        for _, row in new_notices_sorted.iterrows():
             embed = discord.Embed(description=f"[💡{row['제목']}]({row['URL']})", color=discord.Color.blue())
             embed.add_field(name="📆 Date", value=row["게시 날짜"], inline=True)
             await channel.send(embed=embed)
 
-        # 업데이트된 DataFrame 병합 및 저장 (최신이 최상단)
-        combined_df = pd.concat([new_notices_sorted, old_df], ignore_index=True).drop_duplicates(subset=['번호'])
-        combined_df = combined_df.sort_values(by='번호', ascending=True)  # 최신 공지가 위로 가도록 정렬
-        combined_df.to_csv('GB.csv', index=False, encoding='utf-8-sig')
+        # 기존 CSV에 새로운 공지사항 추가
+        updated_df = pd.concat([old_df, new_notices_sorted], ignore_index=True).drop_duplicates(subset=["제목"])
+        updated_df = updated_df.sort_values(by="번호", ascending=True)  # 최신 공지가 위로 가도록 정렬
+        updated_df.to_csv('GB.csv', index=False, encoding='utf-8-sig')
 
-
-        print("공지사항 데이터가 업데이트되었습니다.")
-            # 가장 오래된 (제일 아래) 행 삭제
-
-
-        # 변경된 데이터 저장
-        combined_df.to_csv('GB.csv', index=False, encoding='utf-8-sig')
-
-        print("가장 오래된 공지사항이 삭제되었습니다.", flush=True)
+        print("공지사항 데이터가 업데이트되었습니다.", flush=True)
     else:
         print("새로운 공지사항이 없습니다.", flush=True)
+
 
 @client.event
 async def on_ready():
