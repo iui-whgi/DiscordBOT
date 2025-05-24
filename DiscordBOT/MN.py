@@ -44,7 +44,7 @@ def fetch_notices_mn():
     return notices
 
 
-@tasks.loop(seconds=10)
+@tasks.loop(seconds=30)
 async def check_notices_mn():
     data = fetch_notices_mn()
     

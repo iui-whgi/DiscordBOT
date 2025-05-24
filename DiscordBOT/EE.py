@@ -37,7 +37,9 @@ def fetch_notices_ee():
                 number = int(cells[0].text.strip())
                 category_span = notice.select_one('td.left a span')
                 category = category_span.text.strip() if category_span else '카테고리 없음'
-                title = category_span.find_next_sibling(string=True).strip() if category_span else '제목 없음'
+                title_text = category_span.find_next_sibling(string=True) if category_span else None
+                title = title_text.strip() if title_text else '제목 없음'       
+                
                 date = cells[3].text.strip()
 
                 # ✅ 링크 처리 수정
@@ -66,7 +68,7 @@ def fetch_notices_ee():
 
 
 
-@tasks.loop(seconds=10)  # 5초마다 웹사이트를 체크합니다.
+@tasks.loop(seconds=20)  # 5초마다 웹사이트를 체크합니다.
 async def check_notices_ee():
     # 공지사항 데이터 가져오기
     data = fetch_notices_ee()

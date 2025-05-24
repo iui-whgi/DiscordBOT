@@ -52,7 +52,7 @@ def fetch_cs_notices():
     return data
 
 
-@tasks.loop(seconds=10)  # 5초마다 웹사이트를 체크합니다.
+@tasks.loop(seconds=20)  # 5초마다 웹사이트를 체크합니다.
 async def check_notices_cs():
     # 공지사항 데이터 가져오기
     data = fetch_cs_notices()

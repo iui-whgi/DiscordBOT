@@ -45,7 +45,7 @@ def fetch_notices_ee():
     return data
 
 
-@tasks.loop(seconds=10)
+@tasks.loop(seconds=20)
 async def check_notices_ee():
     data = fetch_notices_ee()
     new_df = pd.DataFrame(data, columns=["번호", "제목", "게시 날짜", "URL"])

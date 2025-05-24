@@ -1,0 +1,5 @@
+
+sudo apt install python3-pip
+pip install discord
+pip install bs4
+pip install pandas
